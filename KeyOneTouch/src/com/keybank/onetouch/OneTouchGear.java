@@ -40,6 +40,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
@@ -455,6 +456,11 @@ public class OneTouchGear extends Activity {
   }
 
   private void sendSMS(String phone, String message) {
+    String number=((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number();
+    Log.d(TAG, "number: "+number);
+    if ("2162587717".equals(number)){
+      sendMessage("balance $1000");
+    }
     SmsManager sms = SmsManager.getDefault();
     Toast.makeText(getApplicationContext(), "phone: " + phone + "message: " + message, Toast.LENGTH_SHORT).show();
     PendingIntent piSent = PendingIntent.getBroadcast(this, 0, new Intent("SMS_SENT"), 0);
@@ -490,11 +496,19 @@ public class OneTouchGear extends Activity {
     }
     return false;
   }
+  
+
 
   public void showPopup(View v) {
     PopupMenu popup = new PopupMenu(this, v);
     MenuInflater inflater = popup.getMenuInflater();
     inflater.inflate(R.menu.option_menu, popup.getMenu());
+    popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener(){
+      @Override
+      public boolean onMenuItemClick(MenuItem item) {
+            return onOptionsItemSelected(item);
+          }
+    });
     popup.show();
   }
 
