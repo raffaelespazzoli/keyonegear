@@ -515,6 +515,8 @@ public class OneTouchGear extends Activity {
     }
     return false;
   }
+  
+
 
   public void showPopup(View v) {
     PopupMenu popup = new PopupMenu(this, v);
