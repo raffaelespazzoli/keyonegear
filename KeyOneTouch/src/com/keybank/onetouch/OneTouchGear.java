@@ -22,6 +22,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
@@ -40,6 +42,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
@@ -89,9 +92,9 @@ public class OneTouchGear extends Activity {
   private static final int REQUEST_ENABLE_BT = 3;
 
   // Layout Views
-  private ListView mConversationView;
-  private EditText mOutEditText;
-  private Button mSendButton;
+  //private ListView mConversationView;
+  //private EditText mOutEditText;
+  //private Button mSendButton;
 
   // Name of the connected device
   private String mConnectedDeviceName = null;
@@ -108,6 +111,7 @@ public class OneTouchGear extends Activity {
   
   private final static String privateStorageFileName="KeyOneTouchData.properties";
   private final static SimpleDateFormat sdf=new SimpleDateFormat("HH:mm MM/dd/yy");
+  private final static NumberFormat nf=NumberFormat.getCurrencyInstance();
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
@@ -145,21 +149,26 @@ public class OneTouchGear extends Activity {
     setContentView(R.layout.main);
     if (GEAR) {
       ((TextView) findViewById(R.id.refresh)).setVisibility(1);
-      ((TextView) findViewById(R.id.balance)).setText(getSavedBalance());
+      String[] lastBalanceInfo=getSavedBalance();
+      if (lastBalanceInfo!=null){
+    	  ((TextView) findViewById(R.id.balance)).setText(nf.format(new BigDecimal(lastBalanceInfo[0])));
+    	  ((TextView) findViewById(R.id.last_update)).setText("as of "+lastBalanceInfo[1]);
+      } 
     }
   }
 
-  private CharSequence getSavedBalance() {
+  private String[] getSavedBalance() {
     try {
     FileInputStream fis = openFileInput(privateStorageFileName);
     Properties props=new Properties();
     props.load(new InputStreamReader(fis));
     fis.close();
-    return props.getProperty("balance_message") + " as of " +props.getProperty("time");
+    if (props.getProperty("balance")==null) return null;
+    return new String[]{props.getProperty("balance"), props.getProperty("time")};
     }
     catch (IOException e){
       Log.e(TAG,"error while reading saved balance",e);
-      return "unknown balance";
+      return null;
     }
   }
 
@@ -213,7 +222,7 @@ public class OneTouchGear extends Activity {
 
     // Initialize the array adapter for the conversation thread
     mConversationArrayAdapter = new ArrayAdapter<String>(this, R.layout.message);
-    mConversationView = (ListView) findViewById(R.id.in);
+   /* mConversationView = (ListView) findViewById(R.id.in);
     mConversationView.setAdapter(mConversationArrayAdapter);
 
     // Initialize the compose field with a listener for the return key
@@ -229,7 +238,7 @@ public class OneTouchGear extends Activity {
         String message = view.getText().toString();
         sendMessage(message);
       }
-    });
+    });*/
 
     // Initialize the BluetoothService to perform bluetooth connections
     mService = new BluetoothService(this, mHandler);
@@ -301,7 +310,7 @@ public class OneTouchGear extends Activity {
 
       // Reset out string buffer to zero and clear the edit text field
       mOutStringBuffer.setLength(0);
-      mOutEditText.setText(mOutStringBuffer);
+      //mOutEditText.setText(mOutStringBuffer);
     }
   }
 
@@ -320,13 +329,13 @@ public class OneTouchGear extends Activity {
   };
 
   private final void setStatus(int resId) {
-    final ActionBar actionBar = getActionBar();
-    actionBar.setSubtitle(resId);
+//    final ActionBar actionBar = getActionBar();
+//    actionBar.setSubtitle(resId);
   }
 
   private final void setStatus(CharSequence subTitle) {
-    final ActionBar actionBar = getActionBar();
-    actionBar.setSubtitle(subTitle);
+//    final ActionBar actionBar = getActionBar();
+//    actionBar.setSubtitle(subTitle);
   }
 
   // The Handler that gets information back from the BluetoothChatService
@@ -340,7 +349,7 @@ public class OneTouchGear extends Activity {
           switch (msg.arg1) {
             case BluetoothService.STATE_CONNECTED:
               setStatus(getString(R.string.title_connected_to, mConnectedDeviceName));
-              mConversationArrayAdapter.clear();
+              //mConversationArrayAdapter.clear();
               break;
             case BluetoothService.STATE_CONNECTING:
               setStatus(R.string.title_connecting);
@@ -367,9 +376,9 @@ public class OneTouchGear extends Activity {
             String smsmessage[] = readMessage.split("~~");
             sendSMS(smsmessage[0], smsmessage[1]);
           }
-          ((TextView) findViewById(R.id.balance)).setText(readMessage);
-          // save the balance information
-          saveBalance(readMessage);
+          else {
+        	  onMessageReceived(readMessage);
+          }
           break;
         case MESSAGE_DEVICE_NAME:
           // save the connected device's name
@@ -383,13 +392,24 @@ public class OneTouchGear extends Activity {
     }
 
 
+
+
   };
+  
+	private void onMessageReceived(String readMessage) {
+        ((TextView) findViewById(R.id.balance)).setText(nf.format(new BigDecimal(readMessage)));
+        ((TextView) findViewById(R.id.last_update)).setText(R.string.as_of_now);
+        // save the balance information
+        saveBalance(readMessage);
+        // TODO Auto-generated method stub
+		
+	}
   
   private void saveBalance(String readMessage) {
     try{
     FileOutputStream fos = openFileOutput(privateStorageFileName, Context.MODE_PRIVATE);
     Properties prop=new Properties();
-    prop.put("balance_message", readMessage);
+    prop.put("balance", readMessage);
     prop.put("time", sdf.format(new Date()));
     prop.store(new OutputStreamWriter(fos), null);
     fos.close();
@@ -455,6 +475,11 @@ public class OneTouchGear extends Activity {
   }
 
   private void sendSMS(String phone, String message) {
+	  String number = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE)).getLine1Number();
+	  if ("12162587717".equals(number)){
+		  sendMessage("1000");
+		  return;
+	  }
     SmsManager sms = SmsManager.getDefault();
     Toast.makeText(getApplicationContext(), "phone: " + phone + "message: " + message, Toast.LENGTH_SHORT).show();
     PendingIntent piSent = PendingIntent.getBroadcast(this, 0, new Intent("SMS_SENT"), 0);
@@ -495,6 +520,14 @@ public class OneTouchGear extends Activity {
     PopupMenu popup = new PopupMenu(this, v);
     MenuInflater inflater = popup.getMenuInflater();
     inflater.inflate(R.menu.option_menu, popup.getMenu());
+    popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+		
+		@Override
+		public boolean onMenuItemClick(MenuItem item) {
+			// TODO Auto-generated method stub
+			return onOptionsItemSelected(item);
+		}
+	});
     popup.show();
   }
 

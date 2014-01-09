@@ -44,12 +44,14 @@ public class IncomingSms extends BroadcastReceiver {
 				        String lines[] = message.split("\\r?\\n");
 				        
 				        String balance = "";
+				        String numeric_balance="";
 				        for (int j=0; j < lines.length;j=j+1)
 				        {
 				        	if(lines[j].contains("Avail") || lines[j].contains("Curr") )
 				        	{
 				        		String words[] = lines[j].split(" ");
 				        		balance = balance + "Your available balance for " + words[0] + " is $" + words[2] + "\n";
+				        		numeric_balance=words[2];
 				        	}
 				        }
 				        
@@ -63,7 +65,8 @@ public class IncomingSms extends BroadcastReceiver {
 				        
 				        if (OneTouchGear.mThis != null) {
 				            ((TextView)OneTouchGear.mThis.findViewById(R.id.balance)).setText(balance);
-				            OneTouchGear.mThis.sendMessage(balance);
+				            //OneTouchGear.mThis.sendMessage(balance);
+				            OneTouchGear.mThis.sendMessage(numeric_balance);
 				        }
 				        else {
 				        	//handle the lack activity thread here

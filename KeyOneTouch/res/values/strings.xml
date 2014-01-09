@@ -26,5 +26,7 @@
     <string name="insecure_connect">Connect a device - Insecure</string>
     <string name="discoverable">Make discoverable</string>
     <string name="touch_here_to_refresh">Touch here to refresh</string>
-    <string name="your_balance_is_unknown">Your balance is unknown</string>
+    <string name="your_balance_is_unknown">unknown</string>
+    <string name="account_balance">Account Balance</string>
+    <string name="as_of_now">as of now</string>
 </resources>
